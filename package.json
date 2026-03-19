@@ -1,0 +1,35 @@
+{
+  "name": "hermitclaw",
+  "version": "0.1.0",
+  "description": "Minimal AI assistant - Gateway + CLI + Agent",
+  "type": "module",
+  "bin": {
+    "hermitclaw": "./bin/hermitclaw.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli/index.ts",
+    "start": "node dist/cli/index.js",
+    "test": "vitest"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "commander": "^12.1.0",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0",
+    "openai": "^4.70.0",
+    "uuid": "^10.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.12",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
