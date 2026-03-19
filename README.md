@@ -133,25 +133,6 @@ npm run dev
 
 MIT
 
-
-我需要为Hermitclaw项目创建一个全面的代码wiki，首先查看项目的整体结构和核心组件。
-        
-            
-toolName: view_folder
-            
-status: success
-          
-/Users/roryyu/Downloads/code/opencode-app/hermitclaw/src
-          
-我需要查看项目的核心组件和新增文件，以便创建全面的代码wiki。让我先查看主要的入口文件和配置。
-        
-            
-toolName: view_files
-            
-status: success
-          
-            
-filePath: /Users/roryyu/Downloads/code/opencode-app/hermitclaw/src/types/index.ts
           
 # Hermitclaw 代码 Wiki
 
