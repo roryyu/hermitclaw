@@ -211,6 +211,69 @@ node dist/cli/index.js gateway --port 8080 --host 0.0.0.0
 └─────────────────────────────────────────────────────────┘
 ```
 
+## 项目结构
+
+```
+src/
+├── cli/                    # 命令行入口
+│   ├── index.ts            # CLI 主入口，注册所有命令
+│   ├── chat.ts             # chat 命令：单次/交互式聊天
+│   ├── session.ts          # session 命令：会话管理
+│   ├── gateway.ts          # gateway 命令：启动网关
+│   └── feishu.ts           # feishu 命令：飞书辅助工具
+│
+├── gateway/                # WebSocket 网关
+│   ├── index.ts            # Gateway 类：WebSocket 服务器、认证、Channel 管理
+│   └── handlers.ts         # 消息处理器：session.create/send/list 等
+│
+├── agent/                  # AI 代理核心
+│   ├── index.ts            # 导出 Agent 和工具函数
+│   ├── runtime.ts          # Agent 运行时：消息处理、工具调用循环
+│   ├── tools.ts            # 工具定义：shell、read_file、write_file
+│   └── tokens.ts           # Token 计数：估算消息 token 数
+│
+├── providers/              # AI 模型提供商
+│   ├── index.ts            # createProvider 工厂函数
+│   ├── openai.ts           # OpenAI 提供商实现
+│   ├── anthropic.ts        # Anthropic 提供商实现
+│   └── ollama.ts           # Ollama 提供商实现
+│
+├── channels/               # 外部平台集成
+│   ├── index.ts            # ChannelManager：管理所有 Channel
+│   ├── types.ts            # Channel 接口定义
+│   └── feishu/             # 飞书 Channel
+│       └── channel.ts      # FeishuChannel：WebSocket 长连接、消息收发
+│
+├── session/                # 会话管理
+│   ├── index.ts            # SessionManager：会话持久化、并发锁
+│   └── summarizer.ts       # 会话摘要：压缩历史消息
+│
+├── config/                 # 配置管理
+│   └── index.ts            # loadConfig/saveConfig、配置验证
+│
+├── types/                  # 类型定义
+│   └── index.ts            # Message、Provider、ToolDef 等核心类型
+│
+└── utils/                  # 工具函数
+    ├── logger.ts           # 结构化日志系统
+    ├── timeout.ts          # 超时控制工具
+    └── validation.ts       # 输入验证工具
+```
+
+### 核心模块说明
+
+| 模块 | 文件 | 功能 |
+|------|------|------|
+| **CLI** | `cli/index.ts` | 命令行入口，使用 commander 注册 chat/session/gateway/feishu 命令 |
+| **Gateway** | `gateway/index.ts` | WebSocket 服务器，支持 Token 认证，管理 Channel 生命周期 |
+| **Agent** | `agent/runtime.ts` | AI 代理核心，处理消息、执行工具调用循环、限制最大迭代次数 |
+| **Tools** | `agent/tools.ts` | 内置工具：shell 执行、文件读写，含安全限制（危险命令过滤、路径白名单） |
+| **Providers** | `providers/*.ts` | 统一的 Provider 接口，支持 OpenAI/Anthropic/Ollama 流式响应 |
+| **Channels** | `channels/index.ts` | ChannelManager 管理多个 Channel，路由消息到 Agent 处理 |
+| **FeishuChannel** | `channels/feishu/channel.ts` | 飞书 WebSocket 长连接，使用 @larksuiteoapi/node-sdk |
+| **Session** | `session/index.ts` | 会话持久化到 JSON 文件，支持异步锁防止并发问题 |
+| **Config** | `config/index.ts` | 配置加载、验证、合并，支持环境变量覆盖 |
+
 ## 开发
 
 ```bash
