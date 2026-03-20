@@ -20,43 +20,135 @@ npm install
 npm run build
 ```
 
-## Usage
+## 使用模式
 
-### Start Gateway
+Hermitclaw 支持两种使用模式：
+
+### 模式一：CLI 直接使用（推荐）
+
+**无需启动网关**，直接在命令行中使用：
 
 ```bash
+# 单次对话
+node dist/cli/index.js chat "Hello, how are you?"
+
+# 交互式聊天
+node dist/cli/index.js chat --interactive
+
+# 会话管理
+node dist/cli/index.js session list
+node dist/cli/index.js session create --name "my-project"
+
+# 飞书集成
+node dist/cli/index.js feishu send <chat-id> "Hello"
+```
+
+### 模式二：Gateway 远程访问
+
+**需要先启动网关**，然后远程客户端通过 WebSocket 连接：
+
+```bash
+# 1. 启动网关
 node dist/cli/index.js gateway
-# or
-./bin/hermitclaw.js gateway
+
+# 2. 客户端通过 WebSocket 连接 ws://127.0.0.1:19000
+#    发送消息进行交互
 ```
 
-### Chat (single message)
+**Gateway 使用场景：**
+- 远程访问 AI 服务
+- 与其他应用集成
+- 多客户端共享同一个 AI 实例
+
+---
+
+## CLI 命令参考
+
+### Chat（聊天）
 
 ```bash
-node dist/cli/index.js chat "Hello, how are you?" --provider openai --model gpt-4o
-```
+# 单次消息
+node dist/cli/index.js chat "Hello" --provider openai --model gpt-4o
 
-### Interactive Chat
-
-```bash
+# 交互式聊天
 node dist/cli/index.js chat --interactive --provider anthropic
+
+# 继续已有会话
+node dist/cli/index.js chat --interactive --session <session-id>
 ```
 
-### Session Management
+### Session（会话管理）
 
 ```bash
-# List sessions
+# 列出会话
 node dist/cli/index.js session list
 
-# Create session
+# 创建会话
 node dist/cli/index.js session create --name "coding" --provider openai
 
-# Get session details
+# 获取会话详情
 node dist/cli/index.js session get <session-id>
 
-# Delete session
+# 删除会话
 node dist/cli/index.js session delete <session-id>
 ```
+
+### Gateway（网关）
+
+```bash
+# 启动网关（默认端口 19000）
+node dist/cli/index.js gateway
+
+# 指定端口和主机
+node dist/cli/index.js gateway --port 8080 --host 0.0.0.0
+```
+
+### Feishu（飞书集成）
+
+```bash
+# 初始化飞书配置
+node dist/cli/index.js feishu init --app-id <id> --app-secret <secret>
+
+# 发送消息
+node dist/cli/index.js feishu send <chat-id> "Hello"
+
+# 列出聊天
+node dist/cli/index.js feishu chats
+
+# 读取消息
+node dist/cli/index.js feishu messages <chat-id> --limit 10
+```
+
+---
+
+## Gateway 客户端示例
+
+启动网关后，可以通过 WebSocket 连接：
+
+```javascript
+// Node.js 客户端示例
+const WebSocket = require('ws');
+const ws = new WebSocket('ws://127.0.0.1:19000');
+
+ws.on('open', () => {
+  // 如果配置了认证，先发送认证消息
+  // ws.send(JSON.stringify({ type: 'auth', token: 'your-token' }));
+  
+  // 创建会话
+  ws.send(JSON.stringify({
+    type: 'session.create',
+    id: 'req-1',
+    payload: { provider: 'openai', model: 'gpt-4o' }
+  }));
+});
+
+ws.on('message', (data) => {
+  const response = JSON.parse(data.toString());
+  console.log('Response:', response);
+});
+```
+
+---
 
 ## Configuration
 
@@ -106,14 +198,29 @@ Configuration is stored in `~/.hermitclaw/config.json`.
 ## Architecture
 
 ```
-CLI (hermitclaw chat/gateway/session)
-  ↓
-Gateway (WebSocket Server)
-  ↓
-Agent (Runtime + Tools)
-  ↓
-Provider (OpenAI/Anthropic/Ollama)
+┌─────────────────────────────────────────────────────────────┐
+│                      使用模式                               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  模式一：CLI 直接使用（无需网关）                            │
+│  ┌─────────┐    ┌─────────┐    ┌─────────────┐              │
+│  │   CLI   │───▶│  Agent  │───▶│  Providers  │              │
+│  └─────────┘    └─────────┘    └─────────────┘              │
+│                                                             │
+│  模式二：Gateway 远程访问                                    │
+│  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌───────────┐  │
+│  │ Client  │───▶│Gateway  │───▶│  Agent  │───▶│ Providers │  │
+│  │ (WS)    │    │ (WS服务器)│   └─────────┘    └───────────┘  │
+│  └─────────┘    └─────────┘                                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+**组件说明：**
+- **CLI**: 命令行界面，直接调用 Agent
+- **Gateway**: WebSocket 服务器，用于远程访问
+- **Agent**: AI 代理核心，处理对话和工具调用
+- **Providers**: AI 提供商（OpenAI、Anthropic、Ollama）
 
 ## Built-in Tools
 
