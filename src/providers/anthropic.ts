@@ -5,10 +5,8 @@ import type { ProviderConfig } from '../types/index.js';
 export class AnthropicProvider implements Provider {
   name = 'anthropic';
   private client: Anthropic;
-  private config: ProviderConfig;
 
   constructor(config: ProviderConfig) {
-    this.config = config;
     this.client = new Anthropic({
       apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
       baseURL: config.baseUrl

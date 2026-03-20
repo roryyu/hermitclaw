@@ -5,7 +5,7 @@ import { createProvider } from '../providers/index.js';
 import { Agent } from '../agent/index.js';
 import { createSession, addMessage, updateSummary, getSession } from '../session/index.js';
 import { generateSummary } from '../session/summarizer.js';
-import type { Message, ChatChunk, Session } from '../types/index.js';
+import type { Message, Session, Provider } from '../types/index.js';
 
 export const chatCommand = new Command('chat')
   .description('Chat with the AI assistant')
@@ -73,7 +73,7 @@ async function singleChat(
   agent: Agent,
   content: string,
   session: Session,
-  provider: unknown,
+  provider: Provider,
   model: string
 ): Promise<void> {
   const userMsg: Message = { role: 'user', content };
@@ -98,7 +98,7 @@ async function singleChat(
   addMessage(session, { role: 'assistant', content: fullResponse });
 
   if (session.messages.length >= 10) {
-    const summary = await generateSummary(session.messages, provider as any, model);
+    const summary = await generateSummary(session.messages, provider, model);
     updateSummary(session, summary);
   }
 }
@@ -106,7 +106,7 @@ async function singleChat(
 async function interactiveChat(
   agent: Agent,
   session: Session,
-  provider: unknown,
+  provider: Provider,
   model: string
 ): Promise<void> {
   const rl = createInterface({
@@ -126,7 +126,7 @@ async function interactiveChat(
       if (input.toLowerCase() === 'exit') {
         if (session.messages.length >= 10) {
           console.log('\nGenerating session summary...');
-          const summary = await generateSummary(session.messages, provider as any, model);
+          const summary = await generateSummary(session.messages, provider, model);
           updateSummary(session, summary);
           console.log('Summary saved.\n');
         }

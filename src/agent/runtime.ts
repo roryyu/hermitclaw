@@ -1,5 +1,5 @@
 import type { Provider, Message, ChatChunk } from '../types/index.js';
-import { getToolDefs, getTool } from './tools.js';
+import { getToolDefs, getTool, MAX_TOOL_ITERATIONS } from './tools.js';
 import { estimateTokens, truncateMessages } from './tokens.js';
 
 export interface AgentResult {
@@ -28,10 +28,26 @@ export class Agent {
     this.maxTokens = maxTokens;
   }
 
+  /**
+   * 运行 Agent 对话
+   * @param messages 消息历史
+   * @param onChunk 可选的 chunk 回调
+   * @param iteration 当前迭代次数（内部使用）
+   */
   async *run(
     messages: Message[],
-    onChunk?: (chunk: ChatChunk) => void
+    onChunk?: (chunk: ChatChunk) => void,
+    iteration: number = 0
   ): AsyncIterable<ChatChunk> {
+    // 检查迭代深度限制
+    if (iteration >= MAX_TOOL_ITERATIONS) {
+      yield {
+        type: 'text',
+        content: `\n[Warning: Maximum tool iterations (${MAX_TOOL_ITERATIONS}) reached. Stopping to prevent infinite loops.]`
+      };
+      yield { type: 'done' };
+      return;
+    }
     const systemTokens = estimateTokens(this.systemPrompt);
     const truncatedMessages = truncateMessages(messages, this.maxHistoryTokens, systemTokens) as Message[];
     const toolDefs = getToolDefs();
@@ -92,7 +108,14 @@ export class Agent {
         messages.push(toolMsg);
       }
 
-      yield* this.run(messages, onChunk);
+      // 记录工具调用信息
+      yield {
+        type: 'text',
+        content: `\n[Tool iteration ${iteration + 1}/${MAX_TOOL_ITERATIONS}]`
+      };
+
+      // 递归调用，增加迭代计数
+      yield* this.run(messages, onChunk, iteration + 1);
     }
   }
 }

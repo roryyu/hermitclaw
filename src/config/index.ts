@@ -6,6 +6,75 @@ import type { HermitConfig, ProviderConfig } from '../types/index.js';
 const CONFIG_DIR = join(homedir(), '.hermitclaw');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
+// ============ 配置验证 ============
+
+function validateConfig(config: unknown): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!config || typeof config !== 'object') {
+    return { valid: false, errors: ['Config must be an object'] };
+  }
+
+  const cfg = config as Record<string, unknown>;
+
+  // 验证 gateway 配置
+  if (cfg.gateway && typeof cfg.gateway === 'object') {
+    const gateway = cfg.gateway as Record<string, unknown>;
+    if (gateway.port !== undefined && (typeof gateway.port !== 'number' || gateway.port < 1 || gateway.port > 65535)) {
+      errors.push('gateway.port must be a number between 1 and 65535');
+    }
+    if (gateway.host !== undefined && typeof gateway.host !== 'string') {
+      errors.push('gateway.host must be a string');
+    }
+    if (gateway.authToken !== undefined && typeof gateway.authToken !== 'string') {
+      errors.push('gateway.authToken must be a string');
+    }
+  }
+
+  // 验证 providers 配置
+  if (cfg.providers && typeof cfg.providers === 'object') {
+    const providers = cfg.providers as Record<string, unknown>;
+    for (const [name, provider] of Object.entries(providers)) {
+      if (!provider || typeof provider !== 'object') {
+        errors.push(`providers.${name} must be an object`);
+        continue;
+      }
+      const p = provider as Record<string, unknown>;
+      if (p.apiKey !== undefined && typeof p.apiKey !== 'string') {
+        errors.push(`providers.${name}.apiKey must be a string`);
+      }
+      if (p.baseUrl !== undefined && typeof p.baseUrl !== 'string') {
+        errors.push(`providers.${name}.baseUrl must be a string`);
+      }
+      if (p.defaultModel !== undefined && typeof p.defaultModel !== 'string') {
+        errors.push(`providers.${name}.defaultModel must be a string`);
+      }
+    }
+  }
+
+  // 验证 agent 配置
+  if (cfg.agent && typeof cfg.agent === 'object') {
+    const agent = cfg.agent as Record<string, unknown>;
+    if (agent.defaultProvider !== undefined && typeof agent.defaultProvider !== 'string') {
+      errors.push('agent.defaultProvider must be a string');
+    }
+    if (agent.systemPrompt !== undefined && typeof agent.systemPrompt !== 'string') {
+      errors.push('agent.systemPrompt must be a string');
+    }
+    if (agent.maxHistoryTokens !== undefined && (typeof agent.maxHistoryTokens !== 'number' || agent.maxHistoryTokens < 1)) {
+      errors.push('agent.maxHistoryTokens must be a positive number');
+    }
+    if (agent.maxTokens !== undefined && (typeof agent.maxTokens !== 'number' || agent.maxTokens < 1)) {
+      errors.push('agent.maxTokens must be a positive number');
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
 const DEFAULT_CONFIG: HermitConfig = {
   gateway: {
     port: 19000,
@@ -41,9 +110,24 @@ export function loadConfig(): HermitConfig {
   let config = DEFAULT_CONFIG;
 
   if (existsSync(CONFIG_FILE)) {
-    const raw = readFileSync(CONFIG_FILE, 'utf-8');
-    const userConfig = JSON.parse(raw);
-    config = mergeConfig(DEFAULT_CONFIG, userConfig);
+    try {
+      const raw = readFileSync(CONFIG_FILE, 'utf-8');
+      const userConfig = JSON.parse(raw);
+      
+      // 验证配置
+      const validation = validateConfig(userConfig);
+      if (!validation.valid) {
+        console.error('Invalid config file:');
+        validation.errors.forEach(e => console.error(`  - ${e}`));
+        console.error('Using default config');
+      } else {
+        config = mergeConfig(DEFAULT_CONFIG, userConfig);
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(`Failed to load config file: ${err.message}`);
+      console.error('Using default config');
+    }
   }
 
   if (process.env.OPENAI_API_KEY) {
@@ -88,6 +172,14 @@ export function loadConfig(): HermitConfig {
         appId: process.env.FEISHU_APP_ID,
         appSecret: process.env.FEISHU_APP_SECRET
       }
+    };
+  }
+
+  // Gateway 认证令牌
+  if (process.env.HERMITCLAW_AUTH_TOKEN) {
+    config.gateway = {
+      ...config.gateway,
+      authToken: process.env.HERMITCLAW_AUTH_TOKEN
     };
   }
 

@@ -5,10 +5,8 @@ import type { ProviderConfig } from '../types/index.js';
 export class OpenAIProvider implements Provider {
   name = 'openai';
   private client: OpenAI;
-  private config: ProviderConfig;
 
   constructor(config: ProviderConfig) {
-    this.config = config;
     this.client = new OpenAI({
       apiKey: config.apiKey || process.env.OPENAI_API_KEY,
       baseURL: config.baseUrl

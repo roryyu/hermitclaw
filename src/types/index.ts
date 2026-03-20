@@ -61,6 +61,7 @@ export interface Session {
 }
 
 export type GatewayMessageType =
+  | 'auth'
   | 'session.create'
   | 'session.list'
   | 'session.get'
@@ -71,6 +72,8 @@ export interface GatewayMessage {
   type: GatewayMessageType;
   id?: string;
   payload: Record<string, unknown>;
+  /** 认证令牌（可在消息级别提供） */
+  token?: string;
 }
 
 export interface GatewayResponse {
@@ -88,6 +91,10 @@ export interface ProviderConfig {
 export interface GatewayConfig {
   port: number;
   host: string;
+  /** 认证令牌（可选） */
+  authToken?: string;
+  /** 连接超时（毫秒），默认 30000 */
+  connectionTimeout?: number;
 }
 
 export interface AgentConfig {
