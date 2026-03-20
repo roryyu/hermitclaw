@@ -111,10 +111,6 @@ export interface FeishuChannelConfig {
   appSecret: string;
   /** 是否启用 */
   enabled?: boolean;
-  /** Webhook 端口（用于接收飞书事件推送） */
-  webhookPort?: number;
-  /** Webhook 路径 */
-  webhookPath?: string;
   /** Encrypt Key（可选，用于解密消息） */
   encryptKey?: string;
   /** Verification Token（可选，用于验证请求） */

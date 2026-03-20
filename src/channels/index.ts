@@ -44,8 +44,6 @@ export class ChannelManager {
           appId: feishuConfig.appId,
           appSecret: feishuConfig.appSecret,
           enabled: true,
-          webhookPort: this.config.channels.feishu.webhookPort,
-          webhookPath: this.config.channels.feishu.webhookPath,
           encryptKey: this.config.channels.feishu.encryptKey,
           verificationToken: this.config.channels.feishu.verificationToken
         });

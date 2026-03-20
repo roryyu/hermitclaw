@@ -83,9 +83,7 @@ node dist/cli/index.js gateway
     "feishu": {
       "appId": "cli_...",
       "appSecret": "...",
-      "enabled": true,
-      "webhookPort": 19001,
-      "webhookPath": "/feishu/webhook"
+      "enabled": true
     }
   }
 }
@@ -119,9 +117,7 @@ npm install @larksuite/openclaw-lark
     "feishu": {
       "appId": "cli_xxx",
       "appSecret": "xxx",
-      "enabled": true,
-      "webhookPort": 19001,
-      "webhookPath": "/feishu/webhook"
+      "enabled": true
     }
   }
 }
@@ -131,8 +127,10 @@ npm install @larksuite/openclaw-lark
 
 1. 登录 [飞书开发者后台](https://open.feishu.cn/app)
 2. 选择应用，进入「事件订阅」
-3. 配置请求网址：`http://your-server:19001/feishu/webhook`
+3. **订阅方式**选择「使用长连接接收事件（推荐）」
 4. 订阅事件：`im.message.receive_v1`
+
+> 长连接模式无需配置公网地址，应用会通过 WebSocket 连接到飞书服务器接收事件。
 
 ### 4. 启动 Gateway
 
