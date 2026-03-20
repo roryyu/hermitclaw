@@ -20,6 +20,64 @@ npm install
 npm run build
 ```
 
+## Configuration
+
+Configuration is stored in `~/.hermitclaw/config.json`.
+
+### Environment Variables
+
+- `OPENAI_API_KEY` - OpenAI API key
+- `OPENAI_BASE_URL` - OpenAI API base URL
+- `ANTHROPIC_API_KEY` - Anthropic API key
+- `ANTHROPIC_BASE_URL` - Anthropic API base URL
+- `OLLAMA_BASE_URL` - Ollama base URL (default: http://localhost:11434)
+- `HERMITCLAW_AUTH_TOKEN` - Gateway authentication token
+- `HERMITCLAW_WORKSPACE` - Workspace directory for file operations
+
+### Config File Example
+
+```json
+{
+  "gateway": {
+    "port": 19000,
+    "host": "127.0.0.1"
+  },
+  "providers": {
+    "openai": {
+      "baseUrl": "https://api.openai.com/v1",
+      "defaultModel": "gpt-4o",
+      "apiKey": "sk-..."
+    },
+    "anthropic": {
+      "baseUrl": "https://api.anthropic.com",
+      "defaultModel": "claude-sonnet-4-20250514",
+      "apiKey": "sk-ant-..."
+    },
+    "ollama": {
+      "baseUrl": "http://localhost:11434",
+      "defaultModel": "llama3"
+    }
+  },
+  "agent": {
+    "defaultProvider": "openai",
+    "defaultModel": "gpt-4o-mini",
+    "systemPrompt": "You are a helpful assistant.",
+    "maxHistoryTokens": 100000,
+    "maxTokens": 1000
+  },
+  "channels": {
+    "feishu": {
+      "appId": "cli_...",
+      "appSecret": "...",
+      "enabled": true,
+      "webhookPort": 19001,
+      "webhookPath": "/feishu/webhook"
+    }
+  }
+}
+```
+
+
 ## 使用模式
 
 Hermitclaw 支持两种使用模式：
@@ -103,7 +161,44 @@ node dist/cli/index.js gateway
 node dist/cli/index.js gateway --port 8080 --host 0.0.0.0
 ```
 
-### Feishu（飞书集成）
+### Feishu（飞书 Channel 集成）
+
+飞书集成通过 **Channel 模式** 实现，启动 Gateway 后自动接收飞书消息并回复。
+
+#### 1. 配置飞书 App
+
+在 `~/.hermitclaw/config.json` 中添加飞书配置：
+
+```json
+{
+  "channels": {
+    "feishu": {
+      "appId": "cli_xxx",
+      "appSecret": "xxx",
+      "enabled": true,
+      "webhookPort": 19001,
+      "webhookPath": "/feishu/webhook"
+    }
+  }
+}
+```
+
+#### 2. 配置飞书开发者后台
+
+1. 登录 [飞书开发者后台](https://open.feishu.cn/app)
+2. 选择你的应用，进入「事件订阅」
+3. 配置请求网址：`http://your-server:19001/feishu/webhook`
+4. 订阅事件：`im.message.receive_v1`（接收消息）
+
+#### 3. 启动 Gateway
+
+```bash
+node dist/cli/index.js gateway
+```
+
+启动后，飞书 Channel 会自动监听消息，当用户在飞书中发送消息给机器人时，Agent 会自动处理并回复。
+
+#### CLI 辅助命令
 
 ```bash
 # 初始化飞书配置
@@ -150,50 +245,7 @@ ws.on('message', (data) => {
 
 ---
 
-## Configuration
 
-Configuration is stored in `~/.hermitclaw/config.json`.
-
-### Environment Variables
-
-- `OPENAI_API_KEY` - OpenAI API key
-- `OPENAI_BASE_URL` - OpenAI API base URL
-- `ANTHROPIC_API_KEY` - Anthropic API key
-- `ANTHROPIC_BASE_URL` - Anthropic API base URL
-- `OLLAMA_BASE_URL` - Ollama base URL (default: http://localhost:11434)
-- `HERMITCLAW_AUTH_TOKEN` - Gateway authentication token
-- `HERMITCLAW_WORKSPACE` - Workspace directory for file operations
-
-### Config File Example
-
-```json
-{
-  "gateway": {
-    "port": 19000,
-    "host": "127.0.0.1"
-  },
-  "providers": {
-    "openai": {
-      "apiKey": "sk-...",
-      "defaultModel": "gpt-4o"
-    },
-    "anthropic": {
-      "apiKey": "sk-ant-...",
-      "defaultModel": "claude-sonnet-4-20250514"
-    },
-    "ollama": {
-      "baseUrl": "http://localhost:11434",
-      "defaultModel": "llama3"
-    }
-  },
-  "agent": {
-    "defaultProvider": "openai",
-    "defaultModel": "gpt-4o-mini",
-    "systemPrompt": "You are a helpful assistant.",
-    "maxHistoryTokens": 100000
-  }
-}
-```
 
 ## Architecture
 

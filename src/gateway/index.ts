@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import type { GatewayMessage, GatewayResponse, HermitConfig } from '../types/index.js';
 import { handleSessionCreate, handleSessionList, handleSessionGet, handleSessionDelete, handleSessionSend } from './handlers.js';
+import { ChannelManager } from '../channels/index.js';
 
 // 认证超时（毫秒）
 const AUTH_TIMEOUT_MS = 10000;
@@ -34,10 +35,12 @@ export class Gateway {
   private wss: WebSocketServer | null = null;
   private config: HermitConfig;
   private requiresAuth: boolean;
+  private channelManager: ChannelManager;
 
   constructor(config: HermitConfig) {
     this.config = config;
     this.requiresAuth = !!config.gateway.authToken;
+    this.channelManager = new ChannelManager(config);
   }
 
   /**
@@ -147,9 +150,21 @@ export class Gateway {
 
     const authInfo = this.requiresAuth ? ' (authentication required)' : '';
     console.log(`Gateway listening on ws://${host}:${port}${authInfo}`);
+
+    // 初始化并启动 Channel Manager
+    try {
+      await this.channelManager.initialize();
+      await this.channelManager.startAll();
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error(`Failed to start channels: ${err.message}`);
+    }
   }
 
   async stop(): Promise<void> {
+    // 停止所有 Channel
+    await this.channelManager.stopAll();
+
     if (this.wss) {
       // 关闭所有客户端连接
       for (const client of authenticatedClients) {
