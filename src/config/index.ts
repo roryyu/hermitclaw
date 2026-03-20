@@ -207,9 +207,19 @@ function mergeConfig(base: HermitConfig, override: Partial<HermitConfig>): Hermi
       : baseProvider;
   }
 
-  return {
+  const result: HermitConfig = {
     gateway: { ...base.gateway, ...override.gateway },
     providers: mergedProviders,
     agent: { ...base.agent, ...override.agent }
   };
+
+  // 合并 channels 配置
+  if (base.channels || override.channels) {
+    result.channels = {
+      ...base.channels,
+      ...override.channels
+    };
+  }
+
+  return result;
 }
