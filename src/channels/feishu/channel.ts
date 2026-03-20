@@ -1,12 +1,12 @@
 /**
  * 飞书 Channel 实现
- * 支持通过长轮询接收消息，适配 openclaw-lark 插件
+ * 使用 @larksuiteoapi/node-sdk 官方 SDK
+ * 适配 openclaw-lark 插件架构
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
+import * as lark from '@larksuiteoapi/node-sdk';
 import type { Channel, ChannelMessage, SendOptions, MessageHandler } from '../types.js';
-
-const FEISHU_BASE_URL = 'https://open.feishu.cn/open-apis';
 
 export interface FeishuChannelConfig {
   appId: string;
@@ -23,6 +23,9 @@ export interface FeishuChannelConfig {
   verificationToken?: string;
 }
 
+/**
+ * 飞书事件结构
+ */
 interface FeishuEvent {
   schema: string;
   header: {
@@ -62,16 +65,11 @@ interface FeishuEvent {
   };
 }
 
-interface TokenCache {
-  tenantAccessToken: string;
-  expire: number;
-}
-
 export class FeishuChannel implements Channel {
   name = 'feishu';
   private config: FeishuChannelConfig;
   private messageHandler: MessageHandler | null = null;
-  private tokenCache: TokenCache | null = null;
+  private client: lark.Client | null = null;
   private httpServer: ReturnType<typeof createServer> | null = null;
   private running = false;
 
@@ -88,6 +86,14 @@ export class FeishuChannel implements Channel {
       console.log('[FeishuChannel] Disabled in config');
       return;
     }
+
+    // 初始化飞书 Client
+    this.client = new lark.Client({
+      appId: this.config.appId,
+      appSecret: this.config.appSecret,
+      appType: lark.AppType.SelfBuild,
+      domain: lark.Domain.Feishu,
+    });
 
     const port = this.config.webhookPort || 19001;
     const path = this.config.webhookPath || '/feishu/webhook';
@@ -171,29 +177,21 @@ export class FeishuChannel implements Channel {
    * 处理飞书事件
    */
   private async handleEvent(data: FeishuEvent | { type: string; challenge?: string }): Promise<void> {
-    // 跳过 URL 验证（已在 handleRequest 中处理）
+    // 跳过 URL 验证
     if ('type' in data && data.type === 'url_verification') {
       return;
     }
 
     const event = data as FeishuEvent;
 
-    // 只处理消息事件
-    if (!event.header || !event.event) {
+    // 只处理消息接收事件
+    if (!event.header || event.header.event_type !== 'im.message.receive_v1') {
       return;
     }
 
-    const { header, event: eventData } = event;
+    const eventData = event.event;
+    if (!eventData) return;
 
-    if (header.event_type === 'im.message.receive_v1') {
-      await this.handleMessage(eventData);
-    }
-  }
-
-  /**
-   * 处理消息事件
-   */
-  private async handleMessage(eventData: FeishuEvent['event']): Promise<void> {
     const { sender, message } = eventData;
 
     // 只处理文本消息
@@ -239,73 +237,29 @@ export class FeishuChannel implements Channel {
   }
 
   /**
-   * 发送消息到飞书
+   * 发送消息到飞书（使用官方 SDK）
    */
   async send(chatId: string, content: string, options?: SendOptions): Promise<void> {
-    const token = await this.getTenantAccessToken();
-
-    const body: Record<string, unknown> = {
-      receive_id: chatId,
-      msg_type: options?.messageType === 'markdown' ? 'post' : 'text',
-      content: options?.messageType === 'markdown'
-        ? JSON.stringify({ post: { zh_cn: { title: '', content: [[{ tag: 'text', text: content }]] } } })
-        : JSON.stringify({ text: content })
-    };
-
-    const response = await fetch(
-      `${FEISHU_BASE_URL}/im/v1/messages?receive_id_type=chat_id`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      }
-    );
-
-    const data = await response.json() as { code: number; msg: string };
-
-    if (data.code !== 0) {
-      throw new Error(`Feishu send error: ${data.msg}`);
+    if (!this.client) {
+      throw new Error('Feishu client not initialized');
     }
 
-    console.log(`[FeishuChannel] Message sent to chat ${chatId}`);
-  }
+    const msgType = options?.messageType === 'markdown' ? 'post' : 'text';
+    const msgContent = options?.messageType === 'markdown'
+      ? JSON.stringify({ post: { zh_cn: { title: '', content: [[{ tag: 'text', text: content }]] } } })
+      : JSON.stringify({ text: content });
 
-  /**
-   * 获取租户访问令牌
-   */
-  private async getTenantAccessToken(): Promise<string> {
-    if (this.tokenCache && this.tokenCache.expire > Date.now()) {
-      return this.tokenCache.tenantAccessToken;
-    }
-
-    const response = await fetch(`${FEISHU_BASE_URL}/auth/v3/tenant_access_token/internal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        app_id: this.config.appId,
-        app_secret: this.config.appSecret
-      })
+    await this.client.im.message.create({
+      params: {
+        receive_id_type: 'chat_id',
+      },
+      data: {
+        receive_id: chatId,
+        content: msgContent,
+        msg_type: msgType,
+      },
     });
 
-    const data = await response.json() as {
-      code: number;
-      msg: string;
-      tenant_access_token: string;
-      expire: number;
-    };
-
-    if (data.code !== 0) {
-      throw new Error(`Feishu auth error: ${data.msg}`);
-    }
-
-    this.tokenCache = {
-      tenantAccessToken: data.tenant_access_token,
-      expire: Date.now() + (data.expire - 60) * 1000
-    };
-
-    return this.tokenCache.tenantAccessToken;
+    console.log(`[FeishuChannel] Message sent to chat ${chatId}`);
   }
 }

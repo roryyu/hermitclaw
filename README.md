@@ -163,9 +163,17 @@ node dist/cli/index.js gateway --port 8080 --host 0.0.0.0
 
 ### Feishu（飞书 Channel 集成）
 
-飞书集成通过 **Channel 模式** 实现，启动 Gateway 后自动接收飞书消息并回复。
+飞书集成通过 **Channel 模式** 实现，使用飞书官方 SDK `@larksuiteoapi/node-sdk`。启动 Gateway 后自动接收飞书消息并回复。
 
-#### 1. 配置飞书 App
+#### 1. 安装依赖
+
+```bash
+npm install @larksuite/openclaw-lark
+```
+
+> 注：`@larksuite/openclaw-lark` 包含 `@larksuiteoapi/node-sdk` 作为依赖，会自动安装。
+
+#### 2. 配置飞书 App
 
 在 `~/.hermitclaw/config.json` 中添加飞书配置：
 
@@ -183,14 +191,14 @@ node dist/cli/index.js gateway --port 8080 --host 0.0.0.0
 }
 ```
 
-#### 2. 配置飞书开发者后台
+#### 3. 配置飞书开发者后台
 
 1. 登录 [飞书开发者后台](https://open.feishu.cn/app)
 2. 选择你的应用，进入「事件订阅」
 3. 配置请求网址：`http://your-server:19001/feishu/webhook`
 4. 订阅事件：`im.message.receive_v1`（接收消息）
 
-#### 3. 启动 Gateway
+#### 4. 启动 Gateway
 
 ```bash
 node dist/cli/index.js gateway
