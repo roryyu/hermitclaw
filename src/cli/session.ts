@@ -36,7 +36,8 @@ sessionCommand
   .action((options) => {
     const config = loadConfig();
     const provider = options.provider || config.agent.defaultProvider;
-    const model = options.model || config.providers[provider]?.defaultModel;
+    // 优先级：命令行 > agent.defaultModel > provider.defaultModel
+    const model = options.model || config.agent.defaultModel || config.providers[provider]?.defaultModel;
     const systemPrompt = options.system || config.agent.systemPrompt;
 
     if (!model) {

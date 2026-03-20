@@ -99,6 +99,8 @@ export interface GatewayConfig {
 
 export interface AgentConfig {
   defaultProvider: string;
+  /** 默认模型（可选，覆盖 provider 的 defaultModel） */
+  defaultModel?: string;
   systemPrompt: string;
   maxHistoryTokens: number;
   maxTokens: number;

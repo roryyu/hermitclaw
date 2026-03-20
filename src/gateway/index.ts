@@ -167,7 +167,7 @@ export class Gateway {
 
     switch (type) {
       case 'session.create':
-        return handleSessionCreate(payload, id);
+        return handleSessionCreate(payload, this.config, id);
       case 'session.list':
         return handleSessionList(id);
       case 'session.get':

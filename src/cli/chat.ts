@@ -19,7 +19,8 @@ export const chatCommand = new Command('chat')
     const config = loadConfig();
 
     const providerName = options.provider || config.agent.defaultProvider;
-    const model = options.model || config.providers[providerName]?.defaultModel;
+    // 优先级：命令行 > agent.defaultModel > provider.defaultModel
+    const model = options.model || config.agent.defaultModel || config.providers[providerName]?.defaultModel;
     const systemPrompt = options.system || config.agent.systemPrompt;
 
     if (!model) {

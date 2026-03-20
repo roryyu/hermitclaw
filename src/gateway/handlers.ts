@@ -18,9 +18,9 @@ import { withTimeout } from '../utils/timeout.js';
 // 默认请求超时时间（毫秒）
 const DEFAULT_REQUEST_TIMEOUT = 120000; // 2分钟
 
-export function handleSessionCreate(payload: Record<string, unknown>, id?: string): GatewayResponse {
-  // 验证必需字段
-  const requiredResult = validateRequiredFields(payload, ['provider', 'model']);
+export function handleSessionCreate(payload: Record<string, unknown>, config: HermitConfig, id?: string): GatewayResponse {
+  // 验证 provider 是必需的
+  const requiredResult = validateRequiredFields(payload, ['provider']);
   if (!requiredResult.valid) {
     return {
       type: 'error',
@@ -32,13 +32,15 @@ export function handleSessionCreate(payload: Record<string, unknown>, id?: strin
   // 验证各字段
   const name = payload.name as string | undefined;
   const provider = payload.provider as string;
-  const model = payload.model as string;
   const systemPrompt = payload.systemPrompt as string | undefined;
+  
+  // model 优先级：payload > agent.defaultModel > provider.defaultModel
+  const model = (payload.model as string | undefined) || config.agent.defaultModel || config.providers[provider]?.defaultModel;
 
   const validationResult = mergeResults(
     name ? validateSessionName(name) : { valid: true, errors: [] },
     validateProviderName(provider),
-    validateModelName(model),
+    model ? validateModelName(model) : { valid: true, errors: [] },
     validateSystemPrompt(systemPrompt)
   );
 
@@ -50,11 +52,19 @@ export function handleSessionCreate(payload: Record<string, unknown>, id?: strin
     };
   }
 
+  if (!model) {
+    return {
+      type: 'error',
+      id,
+      payload: { message: `No model configured for provider: ${provider}. Set agent.defaultModel or providers.${provider}.defaultModel in config.` }
+    };
+  }
+
   const session = createSession(
     name || 'New Session',
     provider,
     model,
-    systemPrompt || 'You are a helpful assistant.'
+    systemPrompt || config.agent.systemPrompt
   );
 
   return {

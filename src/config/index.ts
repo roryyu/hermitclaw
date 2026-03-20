@@ -58,6 +58,9 @@ function validateConfig(config: unknown): { valid: boolean; errors: string[] } {
     if (agent.defaultProvider !== undefined && typeof agent.defaultProvider !== 'string') {
       errors.push('agent.defaultProvider must be a string');
     }
+    if (agent.defaultModel !== undefined && typeof agent.defaultModel !== 'string') {
+      errors.push('agent.defaultModel must be a string');
+    }
     if (agent.systemPrompt !== undefined && typeof agent.systemPrompt !== 'string') {
       errors.push('agent.systemPrompt must be a string');
     }
