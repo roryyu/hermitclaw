@@ -19,3 +19,8 @@ export function run(): void {
 
   program.parse();
 }
+
+// 当直接运行此文件时自动执行
+if (import.meta.url === `file://${process.argv[1]}`) {
+  run();
+}

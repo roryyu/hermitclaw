@@ -65,8 +65,12 @@ Configuration is stored in `~/.hermitclaw/config.json`.
 ### Environment Variables
 
 - `OPENAI_API_KEY` - OpenAI API key
+- `OPENAI_BASE_URL` - OpenAI API base URL
 - `ANTHROPIC_API_KEY` - Anthropic API key
+- `ANTHROPIC_BASE_URL` - Anthropic API base URL
 - `OLLAMA_BASE_URL` - Ollama base URL (default: http://localhost:11434)
+- `HERMITCLAW_AUTH_TOKEN` - Gateway authentication token
+- `HERMITCLAW_WORKSPACE` - Workspace directory for file operations
 
 ### Config File Example
 
@@ -92,6 +96,7 @@ Configuration is stored in `~/.hermitclaw/config.json`.
   },
   "agent": {
     "defaultProvider": "openai",
+    "defaultModel": "gpt-4o-mini",
     "systemPrompt": "You are a helpful assistant.",
     "maxHistoryTokens": 100000
   }
@@ -422,6 +427,7 @@ await gateway.stop();
   },
   "agent": {
     "defaultProvider": "openai",
+    "defaultModel": "gpt-4o-mini",
     "systemPrompt": "You are a helpful assistant.",
     "maxHistoryTokens": 100000,
     "maxTokens": 1000
@@ -443,8 +449,10 @@ await gateway.stop();
 - `ANTHROPIC_API_KEY` - Anthropic API密钥
 - `ANTHROPIC_BASE_URL` - Anthropic API基础URL
 - `OLLAMA_BASE_URL` - Ollama API基础URL
-- `LARK_APP_ID` - 飞书App ID
-- `LARK_APP_SECRET` - 飞书App Secret
+- `HERMITCLAW_AUTH_TOKEN` - Gateway认证令牌
+- `HERMITCLAW_WORKSPACE` - 文件操作工作目录
+- `FEISHU_APP_ID` - 飞书App ID
+- `FEISHU_APP_SECRET` - 飞书App Secret
 
 ## 6. 使用指南
 
@@ -497,7 +505,7 @@ hermitclaw feishu init --app-id <app-id> --app-secret <app-secret>
 hermitclaw feishu send <chat-id> "Hello from Hermitclaw"
 
 # 读取飞书消息
-hermitclaw feishu read <chat-id> --limit 10
+hermitclaw feishu messages <chat-id> --limit 10
 ```
 
 ## 7. 扩展开发
